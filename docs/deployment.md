@@ -18,7 +18,7 @@ Each production build publishes `/arena-state.json`. Its fingerprint covers ever
 
 The scheduled workflow fetches every current channel page from Are.na and creates the same fingerprint. Matching fingerprints stop the workflow without using a Cloudflare build. A different fingerprint triggers the private Pages Deploy Hook.
 
-The schedule runs at 7 and 37 minutes past every hour. Avoiding the top of the hour reduces the chance of delayed GitHub schedules.
+The schedule runs at 13 and 43 minutes past every hour. Avoiding the top of the hour reduces the chance of delayed GitHub schedules.
 
 ## One-time setup
 

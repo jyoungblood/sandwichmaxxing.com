@@ -2,7 +2,7 @@ name: Sync Are.na content
 
 on:
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "13,43 * * * *"
   workflow_dispatch:
     inputs:
       force_deploy:
