@@ -1,0 +1,40 @@
+name: Sync Are.na content
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: Trigger a deploy even when the channel is unchanged
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arena-content-sync
+  cancel-in-progress: true
+
+jobs:
+  check-channel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Compare Are.na with the deployed site
+        env:
+          ARENA_CHANNEL: sandwich-maxxing
+          SITE_STATE_URL: https://sandwichmaxxing.com/arena-state.json
+          CLOUDFLARE_PAGES_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK }}
+          FORCE_DEPLOY: ${{ inputs.force_deploy || 'false' }}
+        run: node scripts/check-arena-deploy.mjs
