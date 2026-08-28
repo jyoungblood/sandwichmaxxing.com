@@ -9,12 +9,22 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "worker:types": "wrangler types workers/worker-configuration.d.ts",
+    "worker:check": "npm run worker:types && tsc --project tsconfig.worker.json --noEmit && wrangler deploy --dry-run",
+    "worker:dev": "wrangler dev --test-scheduled",
+    "worker:deploy": "wrangler deploy"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.1",
     "astro-arena": "^0.1.0",
     "tailwindcss": "^4.3.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260828.1",
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.127.1"
   }
 }

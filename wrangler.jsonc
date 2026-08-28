@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "sandwichmaxxing-arena-sync",
+  "main": "workers/arena-sync.ts",
+  "compatibility_date": "2026-08-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "vars": {
+    "ARENA_CHANNEL": "sandwich-maxxing",
+    "SITE_STATE_URL": "https://sandwichmaxxing.com/arena-state.json"
+  },
+  "secrets": {
+    "required": ["CLOUDFLARE_PAGES_DEPLOY_HOOK"]
+  },
+  "triggers": {
+    "crons": ["13,43 * * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    },
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 1
+    }
+  }
+}

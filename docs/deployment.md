@@ -1,11 +1,11 @@
 # Are.na deployment automation
 
-The site checks the public `sandwich-maxxing` Are.na channel every 30 minutes and rebuilds only when its content changes.
+The Worker reads the public `sandwich-maxxing` Are.na channel every 30 minutes. It rebuilds the site only when the channel changes.
 
 ```text
 Are.na channel
     ↓ every 30 minutes
-GitHub Actions compares fingerprints
+Cloudflare Worker compares fingerprints
     ↓ only when different
 Cloudflare Pages Deploy Hook
     ↓
@@ -14,50 +14,73 @@ Astro rebuilds the site and publishes a new fingerprint
 
 ## How change detection works
 
-Each production build publishes `/arena-state.json`. Its fingerprint covers every block's ID, type, update time, connection ID and position, and image update time.
+Each production build publishes `/arena-state.json`. Its fingerprint includes every block and its position.
 
-The scheduled workflow fetches every current channel page from Are.na and creates the same fingerprint. Matching fingerprints stop the workflow without using a Cloudflare build. A different fingerprint triggers the private Pages Deploy Hook.
+The Worker gets all pages from the Are.na channel. It creates the same fingerprint and compares both values.
 
-The schedule runs at 13 and 43 minutes past every hour. Avoiding the top of the hour reduces the chance of delayed GitHub schedules.
+If the values match, the Worker stops. If the values differ, the Worker calls the private Pages Deploy Hook.
+
+The Cron Trigger runs at 13 and 43 minutes past each hour. Cloudflare uses UTC, but the minutes stay the same.
 
 ## One-time setup
 
-1. In Cloudflare, open **Workers & Pages → sandwichmaxxing.com → Settings → Builds → Deploy Hooks**.
-2. Add a hook named `arena-channel` for the `main` branch.
-3. Copy the generated hook URL. Treat it like a password.
-4. In GitHub, open **sandwichmaxxing.com → Settings → Secrets and variables → Actions**.
-5. Add a repository secret named `CLOUDFLARE_PAGES_DEPLOY_HOOK` containing the hook URL.
-6. Push these repository changes. The existing Cloudflare Git integration will deploy the state endpoint and workflow.
-7. In GitHub's **Actions** tab, open **Sync Are.na content**, select **Run workflow**, enable **force deploy**, and run it once to verify the hook.
+1. Install the project dependencies with `npm install`.
+2. Sign in to Cloudflare with `npx wrangler login`.
+3. Run `npx wrangler secret put CLOUDFLARE_PAGES_DEPLOY_HOOK`.
+4. Paste the existing Pages Deploy Hook URL at the prompt.
+5. Deploy the Worker with `npm run worker:deploy`.
 
-No Are.na token is required because the channel is public.
+Cloudflare can take 15 minutes to activate a new Cron Trigger.
 
-## Operations
+The Worker name is `sandwichmaxxing-arena-sync`. No Are.na token is necessary because the channel is public.
 
-- Use **Run workflow** without force deploy to test change detection.
-- Use it with force deploy to rebuild immediately.
-- Check workflow logs for the live and deployed block counts and fingerprint prefixes.
-- Disable the workflow from GitHub Actions to pause checks.
-- Delete or rotate the Cloudflare Deploy Hook if its URL is exposed, then update the GitHub secret.
-- GitHub automatically disables scheduled workflows in public repositories after 60 days without repository activity. If checks stop after a quiet period, re-enable **Sync Are.na content** from the Actions tab.
+## Make sure that the Worker runs
 
-If Are.na or the deployed site cannot be reached after three attempts, the workflow fails safely and does not deploy. The next scheduled check tries again.
+1. Open **Cloudflare → Workers & Pages → sandwichmaxxing-arena-sync**.
+2. Open **Settings → Triggers**.
+3. Make sure that the Cron Trigger shows `13,43 * * * *`.
+4. Open **Logs** after the next scheduled time.
+
+An `arena_check` log shows both block counts and fingerprint prefixes. A `pages_deploy_triggered` log means that the Worker started a Pages build.
+
+## Manual fallback
+
+The GitHub workflow no longer has a schedule. It remains available as a manual fallback.
+
+Open **GitHub → Actions → Manual Are.na content sync → Run workflow**. Select the checkbox to force a Pages build.
+
+The GitHub repository secret remains necessary for this manual fallback. The Worker stores a separate copy of the same secret in Cloudflare.
+
+## Local commands
+
+- `npm run worker:types` updates the generated Worker types.
+- `npm run worker:check` finds type errors and creates a dry-run bundle.
+- `npm run worker:dev` starts the Worker for local scheduled-event tests.
+- `npm run worker:deploy` deploys the Worker and its Cron Trigger.
+
+For a local test, add the hook URL to `.dev.vars`. Never commit that file.
+
+```text
+CLOUDFLARE_PAGES_DEPLOY_HOOK=https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/...
+```
+
+Then run `npm run worker:dev`. Open `http://localhost:8787/cdn-cgi/handler/scheduled?format=json` to run the scheduled handler.
 
 ## Build usage
 
-The checks themselves run on GitHub and do not use Cloudflare Pages builds. Only detected changes, forced runs, and ordinary Git pushes trigger Pages builds. Cloudflare currently documents 500 Pages builds per month on the Free plan.
+Scheduled Worker runs do not use Pages builds. Channel changes, manual runs, and pushes to `main` use Pages builds.
 
 ## Relevant files
 
-- `.github/workflows/arena-sync.yml` — schedule and manual trigger
-- `scripts/check-arena-deploy.mjs` — comparison and deploy-hook request
-- `scripts/arena-state.mjs` — shared pagination and fingerprint logic
-- `src/pages/arena-state.json.ts` — state published by each build
+- `wrangler.jsonc` defines the Worker, secret, logs, and Cron Trigger.
+- `workers/arena-sync.ts` compares the fingerprints and calls the deploy hook.
+- `.github/workflows/arena-sync.yml` provides the manual fallback.
+- `scripts/arena-state.mjs` provides pagination and fingerprint logic.
+- `src/pages/arena-state.json.ts` publishes the fingerprint for each build.
 
 ## References
 
+- [Cloudflare Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+- [Cloudflare Worker secrets](https://developers.cloudflare.com/workers/configuration/secrets/)
 - [Cloudflare Pages Deploy Hooks](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)
-- [Cloudflare Pages limits](https://developers.cloudflare.com/pages/platform/limits/)
-- [GitHub Actions scheduled workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onschedule)
-- [GitHub Actions schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
 - [Are.na developer API](https://www.are.na/developers)

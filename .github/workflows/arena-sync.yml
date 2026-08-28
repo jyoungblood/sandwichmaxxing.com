@@ -1,8 +1,6 @@
-name: Sync Are.na content
+name: Manual Are.na content sync
 
 on:
-  schedule:
-    - cron: "13,43 * * * *"
   workflow_dispatch:
     inputs:
       force_deploy:
