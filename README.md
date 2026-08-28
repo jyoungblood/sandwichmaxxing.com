@@ -41,3 +41,7 @@ All commands are run from the root of the project, from a terminal:
 ## 👀 Want to learn more?
 
 Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+
+## Credits
+
+The sandwich favicon uses [Twemoji](https://github.com/jdecked/twemoji) artwork, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

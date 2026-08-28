@@ -1,23 +1,199 @@
 ---
+import { getCollection } from "astro:content";
 import "../styles/global.css";
+
+const batchSize = 24;
+const sandwiches = (await getCollection("sandwiches"))
+  .flatMap(({ data: { resource } }) => {
+    if (
+      resource.base_type !== "Block" ||
+      !("image" in resource) ||
+      !resource.image
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: resource.id,
+        alt: resource.image.alt_text ?? resource.title ?? "Sandwich",
+        src: resource.image.medium.src,
+        srcset: `${resource.image.medium.src} 1x, ${resource.image.medium.src_2x} 2x`,
+        position: resource.connection?.position ?? -1,
+      },
+    ];
+  })
+  .sort((a, b) => b.position - a.position);
+
+const batches = Array.from(
+  { length: Math.ceil(sandwiches.length / batchSize) },
+  (_, index) => sandwiches.slice(index * batchSize, (index + 1) * batchSize),
+);
+
+const firstBatch = batches[0] ?? [];
+const queuedBatches = batches.slice(1);
+const fillerEmojis = ["🥪", "🙂", "🍅"];
+const mobileFillers = fillerEmojis.slice(0, (2 - (sandwiches.length % 2)) % 2);
+const desktopFillers = fillerEmojis.slice(0, (4 - (sandwiches.length % 4)) % 4);
 ---
 
-<html lang="en">
+<html lang="en" class="antialiased">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <title>you need to be sandwich maxxing</title>
   </head>
-  <body class="p-12">
-    <h1 class="text-4xl font-bold">
-      <a
-        class="underline hover:text-blue-500"
-        href="https://www.are.na/j-youngblood/sandwich-maxxing"
-        >you need to be sandwich maxxing</a
-      >
-    </h1>
+  <body>
+    <main class="isolate">
+      <header class="px-4 py-12 sm:px-12 sm:py-24">
+        <div class="text-center text-balance">
+          <h1 class="text-2xl font-bold sm:text-5xl mb-6">
+            YOU NEED TO BE SANDWICH MAXXING
+          </h1>
+
+          <a
+            class="underline hover:text-orange-500 font-bold"
+            href="https://www.are.na/j-youngblood/sandwich-maxxing"
+          >
+            SHOW US YOUR SANDWICHES
+          </a>
+        </div>
+      </header>
+
+      <div id="sandwich-grid" class="grid grid-cols-2 gap-1 p-1 sm:grid-cols-4">
+        {
+          firstBatch.map((sandwich) => (
+            <a
+              class="aspect-square overflow-hidden hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              href={`https://www.are.na/block/${sandwich.id}`}
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                class="size-full object-cover"
+                src={sandwich.src}
+                srcset={sandwich.srcset}
+                alt={sandwich.alt}
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          ))
+        }
+      </div>
+
+      {
+        queuedBatches.map((batch) => (
+          <template data-grid-batch>
+            {batch.map((sandwich) => (
+              <a
+                class="aspect-square overflow-hidden hover:opacity-75 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                href={`https://www.are.na/block/${sandwich.id}`}
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  class="size-full object-cover"
+                  src={sandwich.src}
+                  srcset={sandwich.srcset}
+                  alt={sandwich.alt}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </a>
+            ))}
+          </template>
+        ))
+      }
+
+      {
+        (mobileFillers.length > 0 || desktopFillers.length > 0) && (
+          <template data-grid-batch>
+            {mobileFillers.map((emoji) => (
+              <div
+                class="grid aspect-square select-none place-items-center text-5xl sm:hidden"
+                aria-hidden="true"
+              >
+                {emoji}
+              </div>
+            ))}
+            {desktopFillers.map((emoji) => (
+              <div
+                class="grid aspect-square select-none place-items-center text-6xl max-sm:hidden"
+                aria-hidden="true"
+              >
+                {emoji}
+              </div>
+            ))}
+          </template>
+        )
+      }
+
+      <div id="grid-sentinel" class="h-px" aria-hidden="true"></div>
+    </main>
+
+    <script>
+      const grid = document.querySelector("#sandwich-grid");
+      const sentinel = document.querySelector("#grid-sentinel");
+      const batches = Array.from(
+        document.querySelectorAll<HTMLTemplateElement>(
+          "template[data-grid-batch]",
+        ),
+      );
+
+      if (grid && sentinel && batches.length > 0) {
+        let batchIndex = 0;
+        let isLoading = false;
+
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (!entry?.isIntersecting || isLoading) return;
+
+            isLoading = true;
+
+            const loadWhileNear = () => {
+              const batch = batches[batchIndex];
+
+              if (!batch) {
+                observer.disconnect();
+                sentinel.remove();
+                return;
+              }
+
+              grid.append(batch.content.cloneNode(true));
+              batch.remove();
+              batchIndex += 1;
+
+              if (batchIndex >= batches.length) {
+                observer.disconnect();
+                sentinel.remove();
+                return;
+              }
+
+              requestAnimationFrame(() => {
+                if (
+                  sentinel.getBoundingClientRect().top <
+                  window.innerHeight + 600
+                ) {
+                  loadWhileNear();
+                  return;
+                }
+
+                isLoading = false;
+              });
+            };
+
+            loadWhileNear();
+          },
+          { rootMargin: "600px 0px" },
+        );
+
+        observer.observe(sentinel);
+      } else {
+        sentinel?.remove();
+      }
+    </script>
   </body>
 </html>
