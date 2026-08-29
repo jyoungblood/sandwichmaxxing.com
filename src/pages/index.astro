@@ -36,7 +36,8 @@ const fillerEmojis = ["🥪", "🙂", "🍅"];
 const mobileFillers = fillerEmojis.slice(0, (2 - (sandwiches.length % 2)) % 2);
 const desktopFillers = fillerEmojis.slice(0, (4 - (sandwiches.length % 4)) % 4);
 const title = "you need to be sandwich maxxing";
-const description = "A continuously growing wall of sandwiches.";
+const description =
+  "Browse a growing wall of glorious sandwiches, get inspired, and add your own creation to the Sandwich Maxxing collection.";
 const canonicalURL = new URL(Astro.url.pathname, "https://sandwichmaxxing.com");
 const ogImageURL = new URL("/og.png", canonicalURL);
 ---
