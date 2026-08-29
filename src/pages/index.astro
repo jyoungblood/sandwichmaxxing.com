@@ -35,6 +35,10 @@ const queuedBatches = batches.slice(1);
 const fillerEmojis = ["🥪", "🙂", "🍅"];
 const mobileFillers = fillerEmojis.slice(0, (2 - (sandwiches.length % 2)) % 2);
 const desktopFillers = fillerEmojis.slice(0, (4 - (sandwiches.length % 4)) % 4);
+const title = "you need to be sandwich maxxing";
+const description = "A continuously growing wall of sandwiches.";
+const canonicalURL = new URL(Astro.url.pathname, "https://sandwichmaxxing.com");
+const ogImageURL = new URL("/og.png", canonicalURL);
 ---
 
 <html lang="en" class="antialiased">
@@ -43,7 +47,25 @@ const desktopFillers = fillerEmojis.slice(0, (4 - (sandwiches.length % 4)) % 4);
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>you need to be sandwich maxxing</title>
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Sandwich Maxxing" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A colorful sandwich icon" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+    <meta name="twitter:image:alt" content="A colorful sandwich icon" />
   </head>
   <body>
     <main class="isolate">
